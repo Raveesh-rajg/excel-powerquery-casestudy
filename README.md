@@ -1,4 +1,4 @@
-# Advanced Excel / Power Query case study
+# Finance Data Automation | An advanced Excel and Power Query case study
 
 Six messy monthly exports (drifting headers, three date formats, currency
 as text, footer junk), a pivot-shaped budget file, and a dirty product
