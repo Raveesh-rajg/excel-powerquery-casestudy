@@ -1,14 +1,3 @@
-# Power Query — the M code, pattern by pattern
-
-Four queries. Paste into Advanced Editor; each header explains the defect
-it defeats.
-
-## 1. `Sales` — folder combine with schema normalization
-
-Defeats: header drift across files, three date formats, currency-as-text,
-footer junk, region whitespace/casing.
-
-```m
 let
     // one row per file; keeps refresh working when July's export lands
     Source = Folder.Files(ParamDataFolder & "\exports"),
@@ -74,52 +63,3 @@ let
     Renamed = Table.RenameColumns(Typed, {{"order_date_parsed", "order_date"}})
 in
     Renamed
-```
-
-## 2. `Budget` — unpivot
-
-```m
-let
-    Source = Csv.Document(File.Contents(ParamDataFolder & "\budget_wide.csv"),
-                          [Delimiter = ",", QuoteStyle = QuoteStyle.Csv]),
-    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
-    // unpivot EVERYTHING except Region: survives new month columns unchanged
-    Unpivoted = Table.UnpivotOtherColumns(Promoted, {"Region"}, "month_label", "budget_text"),
-    Month = Table.AddColumn(Unpivoted, "month", each
-        Date.FromText("2026-" & Text.Start([month_label], 3) & "-01",
-                      [Format = "yyyy-MMM-dd", Culture = "en-US"]), type date),
-    Typed = Table.TransformColumnTypes(Month, {{"budget_text", Currency.Type}}),
-    Final = Table.SelectColumns(
-        Table.RenameColumns(Typed, {{"budget_text", "budget"}}),
-        {"Region", "month", "budget"})
-in
-    Final
-```
-
-## 3. `Products` — dedup a dirty lookup
-
-```m
-let
-    Source = Csv.Document(File.Contents(ParamDataFolder & "\product_lookup.csv"),
-                          [Delimiter = ",", QuoteStyle = QuoteStyle.Csv]),
-    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
-    CleanKey = Table.TransformColumns(Promoted,
-        {"SKU", each Text.Upper(Text.Trim(_)), type text}),
-    Typed = Table.TransformColumnTypes(CleanKey, {{"Unit Cost", Currency.Type}}),
-    // dedup AFTER normalizing the key — Table.Distinct before Trim/Upper
-    // would keep "SKU-001 " and "SKU-001" as two rows and the model
-    // relationship would fail on duplicate keys anyway
-    Indexed = Table.AddIndexColumn(Typed, "SourceRow", 0, 1, Int64.Type),
-    Stable = Table.Buffer(Table.Sort(Indexed, {{"SourceRow", Order.Ascending}})),
-    Deduped = Table.RemoveColumns(Table.Distinct(Stable, {"SKU"}), {"SourceRow"})
-in
-    Deduped
-```
-(Which duplicate survives `Table.Distinct` is the first-loaded — for the
-case study that's acceptable and DOCUMENTED; production would sort by an
-updated_at first. SKU-003's two costs are the planted example.)
-
-## 4. `ParamDataFolder` — parameter, so the workbook travels
-
-Manage Parameters > New: text parameter holding the data folder path. Every
-source references it; moving the workbook = edit one value.

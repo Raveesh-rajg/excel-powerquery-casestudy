@@ -16,6 +16,8 @@ import random
 rng = random.Random(20260708)
 OUT = pathlib.Path(__file__).parent / "data"
 
+(OUT / "exports").mkdir(parents=True, exist_ok=True)
+
 REGIONS = ["North", "South", "East", "West"]
 REGION_MESS = lambda r: rng.choice([r, r.upper(), r.lower(), f" {r}", f"{r} "])
 PRODUCTS = [f"SKU-{i:03d}" for i in range(1, 41)]

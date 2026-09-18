@@ -1,16 +1,25 @@
-# Finance Data Automation | An advanced Excel and Power Query case study
+# Finance Data Automation
 
-Six messy monthly exports (drifting headers, three date formats, currency
-as text, footer junk), a pivot-shaped budget file, and a dirty product
-lookup — cleaned entirely in Power Query, modeled in Power Pivot with DAX
-(budget variance, YTD, margin), served on a slicer-driven dashboard where
-the monthly process is literally Refresh All.
+Turn six inconsistent monthly exports into a reconciled revenue-versus-budget workbook.
 
-- `generate_data.py` — builds `data/` with every defect planted deliberately
-- `docs/POWER_QUERY_M_CODE.md` — paste-ready M for all four queries, each
-  defect mapped to its defeat
-- `docs/MODEL_DASHBOARD_SPEC.md` — star model, relationships, measures, layout
-- `docs/CASE_STUDY.md` — problem -> approach -> insights -> scale boundary
+## Open the artifact
 
-Build the .xlsx per the specs; add a dashboard screenshot and the verified
-insight numbers to CASE_STUDY.md after building.
+Download [`Finance-Automation.xlsx`](Finance-Automation.xlsx). `Overview` has an editable region selector and formula-driven monthly revenue, budget and variance, plus a linked chart. The source tables remain inspectable on separate sheets.
+
+![Workbook overview](docs/img/Overview.png)
+
+The source audit reconciles **1,412 orders, $857,565.60 revenue and $862,732 budget**. It removes 12 recognized footer rows and three duplicate product keys. Unknown headers, duplicate order IDs, unknown products and invalid dates fail explicitly. All data is synthetic, seeded with 20260708.
+
+## Reproduce and refresh
+
+```sh
+python -m pip install -r requirements.txt
+python prepare_data.py
+python -m pytest tests -q
+```
+
+Six cleaning tests pass. The generated workbook was recalculated, source totals reconciled and all five sheets rendered for inspection. Replace its Sales, Budget and Products table contents with the corresponding files in `outputs/` to refresh the formulas.
+
+[`queries/`](queries/) contains native Power Query M sources. Create `ParamDataFolder` first, then Sales, Budget and Products in Excel Advanced Editor. Product deduplication explicitly preserves the first source row with sorting and buffering. The Python reference enforces the same rule.
+
+**Completion boundary:** this workbook uses Excel formulas. Native Power Query refresh, a Power Pivot model and slicers have not been embedded or verified. [`docs/MODEL_DASHBOARD_SPEC.md`](docs/MODEL_DASHBOARD_SPEC.md) describes that remaining native model. Do not present the formula workbook as a verified Power Pivot implementation.
